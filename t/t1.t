@@ -44,12 +44,10 @@ use Test::DBIx::Class qw(:resultsets);
 BEGIN {
   {
     package MyApp::Sims::REST;
-    use DBIx::Class::Sims::REST;
-    use base 'DBIx::Class::Sims::REST';
+    use DBIx::Class::Sims::REST::SQLite;
+    use base 'DBIx::Class::Sims::REST::SQLite';
 
     sub get_schema_class { 'MyApp::Schema' }
-    sub get_connect_string { 'dbi:SQLite:dbname=:memory:' }
-    sub get_create_commands {}
   }
 }
 
@@ -76,7 +74,7 @@ use JSON::XS qw( encode_json decode_json );
     databases => [
       {
         database => {
-          name => 'foo',
+          name => ':memory:',
         },
         spec => { Artist => [ { name => 'A'} ] },
       },

@@ -35,30 +35,15 @@ sub get_root_connection {
 }
 
 sub get_create_commands {
-  my $class = shift;
-  my ($item, $defaults) = @_;
-
-  my $user = $item->{database}{username} // $defaults->{database}{username};
-  my $pass = $item->{database}{password} // $defaults->{database}{password};
-  my $name = $item->{database}{name} // return;
-
-  return (
-    "DROP DATABASE IF EXISTS `$name`",
-    "CREATE DATABASE `$name`",
-    "GRANT ALL ON `$name`.* TO '$user'\@'%' IDENTIFIED BY '$pass'",
-  );
-}
-
-sub get_schema_class {
   return;
 }
 
-sub get_connect_string {
-  my $class = shift;
-  my ($item, $defaults) = @_;
+sub get_schema_class {
+  die "Must override get_schema_class\n";
+}
 
-  my $name = $item->{database}{name} // return;
-  return "dbi:mysql:database=${name}";
+sub get_connect_string {
+  die "Must override get_connect_string\n";
 }
 
 sub get_username {
@@ -94,9 +79,6 @@ sub get_schema {
 }
 
 sub populate_default_data {
-  my $class = shift;
-  my ($schema, $item) = @_;
-
   return;
 }
 
@@ -250,6 +232,22 @@ categorically disavow any and all responsibility for your idiocy if this ends up
 in your production environment. Please, do not be stupid.
 
 =head1 METHODS
+
+You have to override the following methods for anything to work.
+
+=head2 get_schema_class( $item, $defaults )
+
+This method should return a string containing the package name for the schema.
+It can use anything in the entry and the defaults.
+
+If it returns nothing, then this entry will be skipped.
+
+=head2 get_connect_string( $item, $defaults )
+
+This method should return the first parameter in the connect() method. It can
+use anything in the entry and the defaults.
+
+If it returns nothing, then this entry will be skipped.
 
 =head1 TODO
 
