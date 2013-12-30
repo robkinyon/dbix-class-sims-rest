@@ -2,12 +2,13 @@ package DBIx::Class::Sims::REST;
 
 use 5.010_000;
 
+use strict;
+use warnings FATAL => 'all';
+
 our $VERSION = '0.0.1';
 
 use DBI;
 use Hash::Merge;
-use JSON::XS qw( encode_json decode_json );
-use Plack::Request;
 
 our $base_defaults = {
   database => {
@@ -86,7 +87,7 @@ sub do_sims {
     $request->{defaults} // {},
   );
 
-  my $rv = [];
+  my $rv;
   foreach my $item ( @{$request->{databases} // []} ) {
     my $schema = $class->get_schema($item, $defaults) // next;
 
@@ -110,6 +111,7 @@ sub do_sims {
 
     $class->populate_default_data($schema, $item);
 
+    $rv //= [];
     push @$rv, $schema->load_sims(
       $item->{spec} // {},
       $item->{options} // {},
@@ -119,13 +121,17 @@ sub do_sims {
   return $rv // { error => 'No actions taken' };
 }
 
+use JSON::XS qw( encode_json decode_json );
+use Plack::Request;
+use Web::Simple; # Needed for the prototypes
+
 sub dispatch_request {
   my $class = shift;
   sub (/sims) {
     sub (POST) {
       my ($self, $env) = @_;
-      my $r = Plack::Request->new($env);
 
+      my $r = Plack::Request->new($env);
       my $request = decode_json($r->content);
 
       my $rv = $class->do_sims( $request );

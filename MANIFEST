@@ -15,5 +15,5 @@ MANIFEST.SKIP
 META.yml
 MYMETA.json
 MYMETA.yml
-t/column_defaults.t
+t/t1.t
 t/etc/schema.yml
