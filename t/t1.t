@@ -46,6 +46,10 @@ BEGIN {
     package MyApp::Sims::REST;
     use DBIx::Class::Sims::REST;
     use base 'DBIx::Class::Sims::REST';
+
+    sub get_schema_class { 'MyApp::Schema' }
+    sub get_connect_string { 'dbi:SQLite:dbname=:memory:' }
+    sub get_create_commands {}
   }
 }
 
@@ -59,11 +63,33 @@ use JSON::XS qw( encode_json decode_json );
 
 {
   my $req = HTTP::Request->new( POST => '/sims' );
-  $req->content(encode_json( { json => "here"} ));
+  $req->content(encode_json( {} ));
   my $res = run_request($req);
   cmp_deeply decode_json($res->content), {
     error => "No actions taken"
   };
+}
+
+{
+  my $req = HTTP::Request->new( POST => '/sims' );
+  $req->content(encode_json({
+    databases => [
+      {
+        database => {
+          name => 'foo',
+        },
+        spec => { Artist => [ { name => 'A'} ] },
+      },
+    ],
+  }));
+  my $res = run_request($req);
+  cmp_deeply decode_json($res->content), [
+    {
+      Artist => [
+        { name => 'A', hat_color => 'purple', id => 1 },
+      ]
+    },
+  ];
 }
 
 done_testing;

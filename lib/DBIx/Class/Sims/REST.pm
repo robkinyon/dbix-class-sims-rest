@@ -27,10 +27,11 @@ sub get_root_connection {
   my $class = shift;
   my ($item, $defaults) = @_;
 
-  my $user = $item->{database}{root}{username} // $defaults->{database}{root}{username};
-  my $pass = $item->{database}{root}{password} // $defaults->{database}{root}{password};
+  my $user = $item->{database}{root}{username} // $defaults->{database}{root}{username} // '';
+  my $pass = $item->{database}{root}{password} // $defaults->{database}{root}{password} // '';
 
-  return DBI->connect('dbi:mysql:', $user, $pass);
+  my $connect_string = $class->get_connect_string($item, $defaults);
+  return DBI->connect($connect_string, $user, $pass);
 }
 
 sub get_create_commands {
@@ -48,21 +49,44 @@ sub get_create_commands {
   );
 }
 
+sub get_schema_class {
+  return;
+}
+
+sub get_connect_string {
+  my $class = shift;
+  my ($item, $defaults) = @_;
+
+  my $name = $item->{database}{name} // return;
+  return "dbi:mysql:database=${name}";
+}
+
+sub get_username {
+  my $class = shift;
+  my ($item, $defaults) = @_;
+
+  return $item->{database}{username} // $defaults->{database}{username};
+}
+
+sub get_password {
+  my $class = shift;
+  my ($item, $defaults) = @_;
+
+  return $item->{database}{password} // $defaults->{database}{password};
+}
+
 sub get_schema {
   my $class = shift;
   my ($item, $defaults) = @_;
 
-  my $user = $item->{database}{username} // $defaults->{database}{username};
-  my $pass = $item->{database}{password} // $defaults->{database}{password};
-  my $name = $item->{database}{name} // return;
+  my $schema_class = $class->get_schema_class( $item, $defaults ) // return;
+  my $connect_string = $class->get_connect_string( $item, $defaults ) // return;
 
-  my $schema_class =
-    $item->{type} eq 'azure'     ? 'TwoCO::Schema::Azure'     :
-    return;
+  my $user = $class->get_username($item, $defaults) // '';
+  my $pass = $class->get_password($item, $defaults) // '';
 
   return $schema_class->connect(
-    "dbi:mysql:database=${name}",
-    $user, $pass, {
+    $connect_string, $user, $pass, {
       PrintError => 0,
       RaiseError => 1,
     },
@@ -93,9 +117,11 @@ sub do_sims {
 
     if ( $item->{create} // $defaults->{create} ) {
       my $root_dbh = $class->get_root_connection($item, $defaults) // next;
-      my @commands = $class->get_create_commands($item, $defaults) // next;
+      my @commands = $class->get_create_commands($item, $defaults);
 
-      $root_dbh->do($_) for @commands;
+      if (@commands) {
+        $root_dbh->do($_) for @commands;
+      }
 
       # If we create, we have to deploy as well.
       $item->{deploy} = 1;
@@ -111,11 +137,15 @@ sub do_sims {
 
     $class->populate_default_data($schema, $item);
 
-    $rv //= [];
-    push @$rv, $schema->load_sims(
+    my $sims = $schema->load_sims(
       $item->{spec} // {},
       $item->{options} // {},
     );
+    # Convert objects into columns/values for JSON encoding.
+    while ( my ($k, $v) = each %{$sims} ) {
+      $sims->{$k} = [ map { { $_->get_columns } } @$v ];
+    }
+    push @{ $rv //= [] }, $sims;
   }
 
   return $rv // { error => 'No actions taken' };
