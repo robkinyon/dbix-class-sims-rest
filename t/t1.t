@@ -37,11 +37,7 @@ BEGIN {
     __PACKAGE__->register_class(Artist => 'MyApp::Schema::Result::Artist');
     __PACKAGE__->load_components('Sims');
   }
-}
 
-use Test::DBIx::Class qw(:resultsets);
-
-BEGIN {
   {
     package MyApp::Sims::REST;
     use DBIx::Class::Sims::REST::SQLite;
@@ -58,6 +54,7 @@ sub run_request { $app->run_test_request(@_); }
 
 use HTTP::Request;
 use JSON::XS qw( encode_json decode_json );
+use Test::DBIx::Class qw(:resultsets);
 
 {
   my $req = HTTP::Request->new( POST => '/sims' );
@@ -66,6 +63,9 @@ use JSON::XS qw( encode_json decode_json );
   cmp_deeply decode_json($res->content), {
     error => "No actions taken"
   };
+
+  my $count = grep { $_ != 0 } map { ResultSet($_)->count } Schema->sources;
+  is $count, 0, "There are no tables loaded after request does nothing";
 }
 
 {
@@ -74,7 +74,7 @@ use JSON::XS qw( encode_json decode_json );
     databases => [
       {
         database => {
-          name => ':memory:',
+          name => 't/etc/dbfile.db',
         },
         spec => { Artist => [ { name => 'A'} ] },
       },
@@ -88,6 +88,11 @@ use JSON::XS qw( encode_json decode_json );
       ]
     },
   ];
+
+  my @x = Artist->all;
+  is_fields [ 'id', 'name', 'hat_color' ], Artist, [
+    [ 1, 'A', 'purple' ],
+  ], "Artist fields are right";
 }
 
 done_testing;

@@ -1,7 +1,7 @@
 schema_class: 'MyApp::Schema'
 connect_info:
   -
-    'dbi:SQLite:dbname=:memory:'
+    'dbi:SQLite:dbname=t/etc/dbfile.db'
   -
     ''
   -
