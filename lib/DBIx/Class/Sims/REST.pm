@@ -310,9 +310,13 @@ allows you to set them. Please see that documentation for further information.
 
 =head1 RESPONSE
 
-The response will be an array of the return values from
+If all goes well, the response will be an array of the return values from
 L<DBIx::Class::Sims/load_sims>. The array will be in the same order as
 the databases element of the request.
+
+If nothing happens, the response will be exactly:
+
+  { "error": "No actions taken" }
 
 =head1 REQUIRED METHODS
 
