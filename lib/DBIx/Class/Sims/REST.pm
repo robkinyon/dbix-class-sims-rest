@@ -15,8 +15,8 @@ our $base_defaults = {
     username => '',
     password => '',
     root => {
-      username => 'root',
-      password => 'root',
+      username => '',
+      password => '',
     },
   },
   create => 1,
@@ -117,7 +117,7 @@ sub do_sims {
       });
     }
 
-    $class->populate_default_data($schema, $item);
+    $class->populate_default_data($schema, $item, $defaults);
 
     my $sims = $schema->load_sims(
       $item->{spec} // {},
@@ -168,6 +168,10 @@ In your REST API class:
 
   package My::Sims::REST
 
+  use base 'DBIx::Class::Sims::REST::MySQL';
+
+  sub get_schema_class { return 'My::Schema::Class' }
+
   1;
 
 Then later:
@@ -180,12 +184,11 @@ And, finally, in your test (or some library your tests use):
       databases => [
           {
               database => {
+                  name => 'database name',
                   username => 'some username',
                   password => 'some password',
               },
-              spec => {
-                  <DBIx::Class::Sims specification>
-              },
+              spec => <DBIx::Class::Sims specification>,
           },
       ],
   };
@@ -217,21 +220,101 @@ supposed to subclass this class and provide the meat of these methods.
 
 You will have to create a L<DBIx::Class> description of your schema (or, at the
 least, the bits you want to be able to sim in your tests). It really isn't that
-difficult - there are some examples in the test suite for this module, including
-one that uses JSON for the table descriptions. (There are other benefits to
-using L<DBIx::Class> to manage your schema, even if your application isn't even
-in Perl.)
+difficult - there are examples in the test suite for this module.
 
 Once you have all of that, you will need to host this REST API somewhere. Since
 its purpose is to aid in testing, a good place for it is in your developers'
-Vagrant VMs, and then in the VM you use to run CI tests on.
+Vagrant VMs, and also in the VM you use to run CI tests on.
 
 B<THIS SHOULD NEVER BE MADE AVAILABLE IN PRODUCTION.> If you do so, the problems
 you will have are on your head and your head alone. I explicitly and
 categorically disavow any and all responsibility for your idiocy if this ends up
 in your production environment. Please, do not be stupid.
 
-=head1 METHODS
+=head1 REQUEST
+
+The full data structure to be passed via a request is as follows:
+
+  {
+      defaults => {
+          database => {
+              username => '',
+              password => '',
+              root => {
+                  username => '',
+                  password => '',
+              },
+          },
+          create => 1,
+          deploy => 1,
+      },
+      databases => [
+          {
+              database => {
+                  username => 'username',
+                  password => 'password',
+                  name     => 'name',
+                  root     => {
+                      username => 'root_username',
+                      password => 'root_password',
+                  },
+              },
+              create  => <0|1>,
+              deploy  => <0|1>,
+              spec    => < First parameter to load_sims() >
+              options => < Second parameter to load_sims() >
+          },
+          ...
+      ],
+  }
+
+=over 4
+
+=item * databases
+
+Each entry in this array represents the setting up of a single database. You may
+want to set up multiple databases at the same time, hence the ability to specify
+multiple databases. Each entry will be executed in the order they are specified,
+if that matters. Each entry can decide whether or not to create or deploy, as
+appropriate to your purpose.
+
+=over 4
+
+=item * create
+
+This will drop and recreate the database. This defaults to true. If this is set,
+then deploy will also be set.
+
+This requires the root username, password, and whatever create commands are
+required to be set. Please see the appropriate sections of the documentation for
+further information.
+
+=item * deploy
+
+This will deploy the schema per C<<$schema->deploy(add_drop_tables => 1)>>.
+
+=item * spec
+
+This is the meat and potatoes of this module - the reason why you're here.
+
+Please see L<DBIx::Class::Sims/load_sims> for further information.
+
+=item * options
+
+L<DBIx::Class::Sims/load_sims> has an optional second parameter of options. This
+allows you to set them. Please see that documentation for further information.
+
+=back
+
+=back
+
+=head1 RESPONSE
+
+The response will be an array of the return values from
+L<DBIx::Class::Sims/load_sims>. The array will be in the same order as
+the databases element of the request.
+
+=head1 REQUIRED METHODS
 
 You have to override the following methods for anything to work.
 
@@ -242,12 +325,81 @@ It can use anything in the entry and the defaults.
 
 If it returns nothing, then this entry will be skipped.
 
+You B<MUST> provide an implementation of this method - the base implementation
+throws an error.
+
 =head2 get_connect_string( $item, $defaults )
 
 This method should return the first parameter in the connect() method. It can
 use anything in the entry and the defaults.
 
 If it returns nothing, then this entry will be skipped.
+
+This method has implementations in the SQLite and MySQL subclasses. Otherwise,
+you B<MUST> provide an implementation of this method - the base implementation
+throws an error.
+
+=head1 OPTIONAL METHODS
+
+=head2 get_username( $item, $defaults )
+
+This method should return a string to be used as the username in the connect
+string.
+
+The base implementation returns the username from either the C<$item> or the
+C<$defaults>.
+
+=head2 get_password( $item, $defaults )
+
+This method should return a string to be used as the password in the connect
+string.
+
+The base implementation returns the password from either the C<$item> or the
+C<$defaults>.
+
+=head2 get_root_connection( $item, $defaults )
+
+This method should return a DBI C<$dbh> that has a root connection to the
+database. This is what the return value of C<get_create_commands()> will be
+passed to.
+
+The base implementation retrieves the root username and password from the
+database entry in the C<$item> or C<$defaults>, then uses the value from
+C<get_connect_string()> to connect to the database. This should be sufficient
+for most purposes.
+
+=head2 get_create_commands( $item, $defaults )
+
+This method should return an array of SQL commands to be executed via a root
+connection when a database is dropped and created. These commands will be
+executed when C<<create => 1>>.
+
+The base implementation returns an empty array.
+
+=head2 populate_default_data( $schema, $item, $defaults )
+
+This method is called after create/deploy is processed, but before
+C<<$schema->load_sims()>> is invoked. You can use this method to do any default
+data population. For example, to invoke L<DBIx::Class::Fixtures> or to call
+L<DBIx::Class::Schema/populate>.
+
+=head1 SUGGESTIONS
+
+=head2 Additional Keys
+
+The keys listed thus far in C<$item> are only those L<DBIx::Class::Sims> uses
+internally. You are more than welcome to add additional keys as you need. Then,
+in the various methods that are passed C<$item>, you can pull those out.
+
+=head2 Multiple databases
+
+Your tests may need multiple databases to be populated. This is why the data
+specification requires a databases array. The C<$item>s will be processed in the
+order they are specified, in case that matters.
+
+You can combine this with adding an additional key to specify which database
+this C<$item> is dealing with. That way, you can have a different schema class,
+different default data, etc.
 
 =head1 TODO
 
