@@ -1,11 +1,9 @@
 # vi:sw=2
-#use strict;
-#use warnings FATAL => 'all';
+use strict;
+use warnings FATAL => 'all';
 
 use Test::More;
-#use Test::Deep;
-#use Test::Exception;
-#use Test::Warn;
+use Test::Deep;
 
 BEGIN {
   {
@@ -39,7 +37,11 @@ BEGIN {
     __PACKAGE__->register_class(Artist => 'MyApp::Schema::Result::Artist');
     __PACKAGE__->load_components('Sims');
   }
+}
 
+use Test::DBIx::Class qw(:resultsets);
+
+BEGIN {
   {
     package MyApp::Sims::REST;
     use DBIx::Class::Sims::REST;
@@ -48,17 +50,20 @@ BEGIN {
 }
 
 use Web::Simple 'MyApp::Sims::REST';
-use HTTP::Request;
-
-use Test::DBIx::Class qw(:resultsets);
 
 my $app = MyApp::Sims::REST->new;
 sub run_request { $app->run_test_request(@_); }
 
-my $req = HTTP::Request->new( POST => '/sims' );
-$req->content_type('application/json');
-$req->content('{"json": "here"}');
-my $res = run_request($req);
-is $res->content, '{"error":"No actions taken"}';
+use HTTP::Request;
+use JSON::XS qw( encode_json decode_json );
+
+{
+  my $req = HTTP::Request->new( POST => '/sims' );
+  $req->content(encode_json( { json => "here"} ));
+  my $res = run_request($req);
+  cmp_deeply decode_json($res->content), {
+    error => "No actions taken"
+  };
+}
 
 done_testing;
