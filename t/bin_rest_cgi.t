@@ -21,7 +21,7 @@ if ( !$pid ) { # Child process
   exit;
 }
 
-sleep 1; # Wait for rest.cgi to start
+sleep 2; # Wait for rest.cgi to start
 
 my $data = {
   databases => [

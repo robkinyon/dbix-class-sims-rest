@@ -17,5 +17,7 @@ requires 'Web::Simple';
 test_requires 'Test::DBIx::Class' => '0.01';
 test_requires 'Test::More'        => '0.88'; # done_testing
 test_requires 'Test::Deep'        => '0.01';
+test_requires 'LWP::UserAgent'    => '0.01';
+test_requires 'HTTP::Request'     => '0.01';
  
 WriteAll;
