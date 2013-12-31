@@ -12,6 +12,7 @@ requires 'DBIx::Class::Sims';
 requires 'Hash::Merge';
 requires 'JSON::XS';
 requires 'Plack::Request';
+requires 'Web::Simple';
  
 test_requires 'Plack'        => '1.0030'; # provides Plack::Test->create
 test_requires 'Test::DBIx::Class' => '0.01';

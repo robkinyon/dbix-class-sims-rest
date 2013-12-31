@@ -8,6 +8,8 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/DBIx/Class/Sims/REST.pm
+lib/DBIx/Class/Sims/REST/MySQL.pm
+lib/DBIx/Class/Sims/REST/SQLite.pm
 LICENSE
 Makefile.PL
 MANIFEST
@@ -15,5 +17,6 @@ MANIFEST.SKIP
 META.yml
 MYMETA.json
 MYMETA.yml
+t/bin_rest_cgi.t
 t/t1.t
 t/etc/schema.yml
