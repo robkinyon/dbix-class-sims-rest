@@ -1,5 +1,11 @@
 Revision history for DBIx::Class::Sims::REST (ordered by revision number).
 
+0.0.5 Dec 30 2013 21:16:00 PDT
+   - Removed unneeded dependency on Test::Cmd
+
+0.0.4 Dec 30 2013 21:15:00 PDT
+   - Added missing dependency on Test::Cmd
+
 0.0.3 Dec 30 2013 21:00:00 PDT
    - Added missing dependency on Web::Simple
 

@@ -14,11 +14,8 @@ requires 'JSON::XS';
 requires 'Plack::Request';
 requires 'Web::Simple';
  
-test_requires 'Plack'        => '1.0030'; # provides Plack::Test->create
 test_requires 'Test::DBIx::Class' => '0.01';
-test_requires 'Test::Exception'   => '0.21';
 test_requires 'Test::More'        => '0.88'; # done_testing
 test_requires 'Test::Deep'        => '0.01';
-test_requires 'Test::Warn'        => '0.01';
  
 WriteAll;

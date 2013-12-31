@@ -5,8 +5,6 @@ use warnings FATAL => 'all';
 use Test::More;
 use Test::Deep;
 
-use Test::Cmd;
-
 use HTTP::Request;
 use JSON::XS qw( decode_json encode_json );
 use LWP::UserAgent;
