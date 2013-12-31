@@ -176,7 +176,7 @@ In your REST API class:
 
 Then later:
 
-   plackup bin/rest.cgi -p <PORT> -- My::Sims::REST
+  SIMS_CLASS="My::Sims::REST" plackup bin/rest.cgi -p <PORT>
 
 And, finally, in your test (or some library your tests use):
 
@@ -409,7 +409,9 @@ different default data, etc.
 
 =over 4
 
-* Chef/Puppet recipes for auto-launching the REST API
+=item * Chef/Puppet recipes for auto-launching the REST API
+
+=item * Figure out how to pass the class into plackup without an envvar.
 
 =back
 
