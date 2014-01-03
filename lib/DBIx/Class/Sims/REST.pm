@@ -5,7 +5,7 @@ use 5.010_000;
 use strict;
 use warnings FATAL => 'all';
 
-our $VERSION = '0.0.6';
+our $VERSION = '0.000007';
 
 use DBI;
 use Hash::Merge;
@@ -95,26 +95,29 @@ sub do_sims {
 
   my $rv;
   foreach my $item ( @{$request->{databases} // []} ) {
-    my $schema = $class->get_schema($item, $defaults) // next;
+    my $schema;
+    if ( $item->{deploy} // $defaults->{deploy} ) {
+      # Only create if we're also able to deploy.
+      if ( $item->{create} // $defaults->{create} ) {
+        my $root_dbh = $class->get_root_connection($item, $defaults) // next;
+        my @commands = $class->get_create_commands($item, $defaults);
 
-    if ( $item->{create} // $defaults->{create} ) {
-      my $root_dbh = $class->get_root_connection($item, $defaults) // next;
-      my @commands = $class->get_create_commands($item, $defaults);
-
-      if (@commands) {
-        $root_dbh->do($_) for @commands;
+        if (@commands) {
+          $root_dbh->do($_) for @commands;
+        }
       }
 
-      # If we create, we have to deploy as well.
-      $item->{deploy} = 1;
-    }
+      # The database may not exist until this point.
+      $schema = $class->get_schema($item, $defaults) // next;
 
-    # XXX Need to capture the warnings and provide them back to the caller
-    if ( $item->{deploy} // $defaults->{deploy} ) {
+      # XXX Need to capture the warnings and provide them back to the caller
       $schema->deploy({
         add_drop_table => 1,
         show_warnings => 1,
       });
+    }
+    else {
+      $schema = $class->get_schema($item, $defaults) // next;
     }
 
     $class->populate_default_data($schema, $item, $defaults);
@@ -174,9 +177,16 @@ In your REST API class:
 
   1;
 
+In a rest.cgi file (somewhere):
+
+  use My::Sims::REST;
+  use Web::Simple 'My::Sims::REST';
+
+  My::Sims::REST->run_if_script;
+
 Then later:
 
-  SIMS_CLASS="My::Sims::REST" plackup bin/rest.cgi -p <PORT>
+  plackup <path/to/your/rest.cgi> -p <PORT>
 
 And, finally, in your test (or some library your tests use):
 

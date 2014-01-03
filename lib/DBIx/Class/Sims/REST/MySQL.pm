@@ -10,7 +10,12 @@ use base 'DBIx::Class::Sims::REST';
 
 sub get_connect_string {
   my $class = shift;
-  my ($item, $defaults) = @_;
+  my ($item, $defaults, $opts) = @_;
+  $opts //= {};
+
+  # Cannot connect to a database that doesn't exist, even if the first action is
+  # to create that database.
+  return "dbi:mysql:" if $opts->{no_name};
 
   my $name = $item->{database}{name} // return;
   return "dbi:mysql:database=${name}";
@@ -27,7 +32,9 @@ sub get_create_commands {
   return (
     "DROP DATABASE IF EXISTS `$name`",
     "CREATE DATABASE `$name`",
-    "GRANT ALL ON `$name`.* TO '$user'\@'%' IDENTIFIED BY '$pass'",
+    "GRANT ALL ON $name.* TO '$user'\@'%' IDENTIFIED BY '$pass'",
+    # MySQL requires localhost to be granted separately.
+    "GRANT ALL ON $name.* TO '$user'\@'localhost' IDENTIFIED BY '$pass'",
   );
 }
 
