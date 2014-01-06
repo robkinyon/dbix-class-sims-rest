@@ -5,7 +5,7 @@ use 5.010_000;
 use strict;
 use warnings FATAL => 'all';
 
-our $VERSION = '0.000007';
+our $VERSION = '0.000008';
 
 use DBI;
 use Hash::Merge;
@@ -30,7 +30,9 @@ sub get_root_connection {
   my $user = $item->{database}{root}{username} // $defaults->{database}{root}{username} // '';
   my $pass = $item->{database}{root}{password} // $defaults->{database}{root}{password} // '';
 
-  my $connect_string = $class->get_connect_string($item, $defaults);
+  my $connect_string = $class->get_connect_string(
+    $item, $defaults, { no_name => 1 },
+  );
   return DBI->connect($connect_string, $user, $pass);
 }
 

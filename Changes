@@ -1,5 +1,8 @@
 Revision history for DBIx::Class::Sims::REST (ordered by revision number).
 
+0.0000008 Jan 06 2014 07:30:00 PDT
+   - Don't use a database name when connecting via root to create it.
+
 0.0000007 Jan 03 2014 11:30:00 PDT
    - Don't create if deploy isn't also true
    - Fixed the grant commands for MySQL
