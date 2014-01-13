@@ -1,5 +1,12 @@
 Revision history for DBIx::Class::Sims::REST (ordered by revision number).
 
+0.0000009 Jan 12 2014 16:00:00 PDT
+   - Allow the following to be overridden by methods:
+      - get_defaults
+      - sims_options
+      - flatten_for_transport
+   - Fixed the location of the GitHub project.
+
 0.0000008 Jan 06 2014 07:30:00 PDT
    - Don't use a database name when connecting via root to create it.
 

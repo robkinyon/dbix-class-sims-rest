@@ -5,23 +5,25 @@ use 5.010_000;
 use strict;
 use warnings FATAL => 'all';
 
-our $VERSION = '0.000008';
+our $VERSION = '0.000009';
 
 use DBI;
 use Hash::Merge;
 
-our $base_defaults = {
-  database => {
-    username => '',
-    password => '',
-    root => {
+sub get_defaults {
+  return {
+    database => {
       username => '',
       password => '',
+      root => {
+        username => '',
+        password => '',
+      },
     },
-  },
-  create => 1,
-  deploy => 1,
-};
+    create => 1,
+    deploy => 1,
+  };
+}
 
 sub get_root_connection {
   my $class = shift;
@@ -37,7 +39,7 @@ sub get_root_connection {
 }
 
 sub get_create_commands {
-  return;
+  die "Must override get_create_commands\n";
 }
 
 sub get_schema_class {
@@ -84,6 +86,22 @@ sub populate_default_data {
   return;
 }
 
+sub sims_options {
+  return;
+}
+
+sub flatten_for_transport {
+  my $class = shift;
+  my ($sims) = @_;
+  # Convert objects into columns/values for JSON encoding.
+  my %flattened;
+  while ( my ($k, $v) = each %{$sims} ) {
+    $flattened{$k} = [ map { { $_->get_columns } } @$v ];
+  }
+
+  return \%flattened;
+}
+
 sub do_sims {
   my $class = shift;
   my ($request) = @_;
@@ -91,7 +109,7 @@ sub do_sims {
   my $merger = Hash::Merge->new('RIGHT_PRECEDENT');
 
   my $defaults = $merger->merge(
-    $base_defaults,
+    $class->get_defaults // {},
     $request->{defaults} // {},
   );
 
@@ -99,7 +117,7 @@ sub do_sims {
   foreach my $item ( @{$request->{databases} // []} ) {
     my $schema;
     if ( $item->{deploy} // $defaults->{deploy} ) {
-      # Only create if we're also able to deploy.
+      # Only create if we're also going to deploy.
       if ( $item->{create} // $defaults->{create} ) {
         my $root_dbh = $class->get_root_connection($item, $defaults) // next;
         my @commands = $class->get_create_commands($item, $defaults);
@@ -126,13 +144,12 @@ sub do_sims {
 
     my $sims = $schema->load_sims(
       $item->{spec} // {},
-      $item->{options} // {},
+      $merger->merge(
+        $class->sims_options($schema, $item, $defaults) // {},
+        $item->{options} // {}
+      ),
     );
-    # Convert objects into columns/values for JSON encoding.
-    while ( my ($k, $v) = each %{$sims} ) {
-      $sims->{$k} = [ map { { $_->get_columns } } @$v ];
-    }
-    push @{ $rv //= [] }, $sims;
+    push @{ $rv //= [] }, $class->flatten_for_transport($sims);
   }
 
   return $rv // { error => 'No actions taken' };
@@ -316,6 +333,8 @@ Please see L<DBIx::Class::Sims/load_sims> for further information.
 L<DBIx::Class::Sims/load_sims> has an optional second parameter of options. This
 allows you to set them. Please see that documentation for further information.
 
+You can set a default set of options by overriding L</sims_options>.
+
 =back
 
 =back
@@ -356,6 +375,25 @@ you B<MUST> provide an implementation of this method - the base implementation
 throws an error.
 
 =head1 OPTIONAL METHODS
+
+=head2 get_defaults()
+
+This method should return a hashref that provides the defaults for all calls.
+
+The base implementation returns the following:
+
+  {
+    database => {
+      username => '',
+      password => '',
+      root => {
+        username => '',
+        password => '',
+      },
+    },
+    create => 1,
+    deploy => 1,
+  }
 
 =head2 get_username( $item, $defaults )
 
@@ -399,6 +437,14 @@ C<<$schema->load_sims()>> is invoked. You can use this method to do any default
 data population. For example, to invoke L<DBIx::Class::Fixtures> or to call
 L<DBIx::Class::Schema/populate>.
 
+=head2 sims_options( $schema, $item, $defaults )
+
+This method should return a hashref appropriate to pass as the second parameter
+to C<load_sims()>. It will be merged with the whatever is passed in for the
+specific item.
+
+The base implementation returns an empty hashref.
+
 =head1 SUGGESTIONS
 
 =head2 Additional Keys
@@ -430,7 +476,7 @@ different default data, etc.
 =head1 BUGS/SUGGESTIONS
 
 This module is hosted on Github at
-L<https://github.com/robkinyon/dbix-class-sims>. Pull requests are strongly
+L<https://github.com/robkinyon/dbix-class-sims-rest>. Pull requests are strongly
 encouraged.
 
 =head1 SEE ALSO
