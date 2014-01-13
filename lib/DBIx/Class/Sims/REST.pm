@@ -5,24 +5,26 @@ use 5.010_000;
 use strict;
 use warnings FATAL => 'all';
 
-our $VERSION = '0.000009';
+our $VERSION = '0.000010';
 
 use DBI;
 use Hash::Merge;
 
-sub get_defaults {
-  return {
-    database => {
+my $base_defaults = {
+  database => {
+    username => '',
+    password => '',
+    root => {
       username => '',
       password => '',
-      root => {
-        username => '',
-        password => '',
-      },
     },
-    create => 1,
-    deploy => 1,
-  };
+  },
+  create => 1,
+  deploy => 1,
+};
+
+sub get_defaults {
+  return;
 }
 
 sub get_root_connection {
@@ -109,6 +111,7 @@ sub do_sims {
   my $merger = Hash::Merge->new('RIGHT_PRECEDENT');
 
   my $defaults = $merger->merge(
+    $base_defaults // {},
     $class->get_defaults // {},
     $request->{defaults} // {},
   );
