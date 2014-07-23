@@ -128,6 +128,8 @@ sub do_sims {
         if (@commands) {
           $root_dbh->do($_) for @commands;
         }
+	$root_dbh->disconnect
+    	  or warn "Disconnection failed: $DBI::errstr\n";
       }
 
       # The database may not exist until this point.
