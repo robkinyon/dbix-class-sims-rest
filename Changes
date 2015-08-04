@@ -1,5 +1,8 @@
 Revision history for DBIx::Class::Sims::REST (ordered by revision number).
 
+0.0000011 Aug 04 2015 07:00:00 PDT
+   - Move a test from t/ to xt/ to stop CPANTS failures I cannot diagnose.
+
 0.0000010 Jan 13 2014 12:30:00 PDT
    - Even if get_defaults() is overridden, still provide base defaults so that
      the user doesn't have to set all the defaults.
