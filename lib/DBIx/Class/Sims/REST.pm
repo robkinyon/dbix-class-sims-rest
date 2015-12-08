@@ -5,7 +5,7 @@ use 5.010_000;
 use strict;
 use warnings FATAL => 'all';
 
-our $VERSION = '0.000011';
+our $VERSION = '0.000012';
 
 use DBI;
 use Hash::Merge;

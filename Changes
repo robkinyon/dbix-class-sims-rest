@@ -1,5 +1,8 @@
 Revision history for DBIx::Class::Sims::REST (ordered by revision number).
 
+0.0000012 Dec 08 2015 07:00:00 PDT
+   - Remove MYMETA.yml (RT#108881)
+
 0.0000011 Aug 04 2015 07:00:00 PDT
    - Move a test from t/ to xt/ to stop CPANTS failures I cannot diagnose.
 
